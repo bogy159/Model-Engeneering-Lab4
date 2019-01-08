@@ -238,6 +238,9 @@ class SimulatorGenerator implements IGenerator {
 								«IF k > 0»
 									«setPrevCommand(block.commands.get(k - 1))»
 									()=>{«setCommandName(rover, command)»("light_0","green");«unHighlightPreviousCommand(prevCommand)»;highlight("command_«command.commandId»");},
+								«ELSEIF k == 0 && j > 0»
+									«setPrevCommand(block.commands.get(block.commands.size - 1))»
+									()=>{«setCommandName(rover, command)»("light_0","green");«unHighlightPreviousCommand(prevCommand)»;highlight("command_«command.commandId»");},
 								«ELSE»
 									()=>{«setCommandName(rover, command)»("light_0","green");highlight("command_«command.commandId»");},
 								«ENDIF»
@@ -276,6 +279,34 @@ class SimulatorGenerator implements IGenerator {
 					«ENDIF»
 				];
 		«ENDFOR»
+		
+		function drawOnLoad(){ 
+		«FOR i: 0..roverSystem.rovers.size - 1»
+			drawRover(«i»);
+		«ENDFOR»
+		}
+		
+		«FOR i: 0..roverSystem.roverPrograms.size - 1»
+			«var program = roverSystem.roverPrograms.get(i)»
+			function «program.name»() {
+				«var block = program.block»
+				«IF block instanceof Repeat»
+					for (var i0 = «block.count»; i0 > 0; i0--) {
+						«FOR j: 0..block.commands.size - 1»
+							«setCommandName(program.rover,block.commands.get(j))»«setCommandData(program.rover,block.commands.get(j))»
+						«ENDFOR»
+						}
+				«ELSE»
+					«FOR j: 0..block.commands.size - 1»
+						«setCommandName(program.rover,block.commands.get(j))»«setCommandData(program.rover,block.commands.get(j))»
+					«ENDFOR»
+				«ENDIF»
+				
+			}
+			
+		«ENDFOR»
+		
+		
 		'''
 	}
 	
@@ -320,6 +351,30 @@ class SimulatorGenerator implements IGenerator {
 		} else if (c instanceof Rotate) {
 			return new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString();
 		}
+	}
+	
+	private def Integer getLightName(Rover rover) {
+		for (int i: 0..rover.components.size) {
+			var component = rover.components.get(i);
+			if (component instanceof Light) {
+				return component.lightId
+			}
+		}
+	}
+	
+	private def String setCommandData(Rover rover, Command c) {
+		
+		if (c instanceof SetLightColor) {
+			return "(" + "\"light_" + getLightName(rover) + "\",\"" + c.color + "\");"
+		} else if (c instanceof Move) {
+			return "(" + rover.roverId + "," + new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString() + "," + c.distance.value * c.speed.value  + ");"
+		} else if (c instanceof Rotate) {
+			var str = String.format("%.7f", Math.ceil(c.angle.value * (Math.PI / 180) * 10000000) / 10000000);
+			return "=rotate(" + new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString() + "," + str + ");";
+		}
+//		 else if (c instanceof Repeat) {
+//			setCommandData(rover,c)
+//		}
 	}
 
 }
