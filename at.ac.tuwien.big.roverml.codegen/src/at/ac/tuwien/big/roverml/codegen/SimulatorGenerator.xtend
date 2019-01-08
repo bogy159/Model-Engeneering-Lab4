@@ -29,7 +29,7 @@ class SimulatorGenerator implements IGenerator {
 	val Map<Rover, Integer> roverId = newHashMap
 	val Map<Light, Integer> lightId = newHashMap
 	val Map<Command, Integer> commandId = newHashMap
-	
+
 	Command prevCommand = null;
 
 	def Integer getRoverId(Rover rover) {
@@ -43,7 +43,7 @@ class SimulatorGenerator implements IGenerator {
 	def Integer getCommandId(Command command) {
 		commandId.computeIfAbsent(command, [c|commandId.size])
 	}
-	
+
 	def void setPrevCommand(Command c) {
 		this.prevCommand = c
 	}
@@ -218,98 +218,124 @@ class SimulatorGenerator implements IGenerator {
 	def generateJavascript(RoverSystem roverSystem) {
 		// TODO generate .js
 		'''
-		var xPos = [[0],[0]];
-		var yPos = [[10],[80]];
-		
-		var rover0angle = 0;
-		var rover1angle = 0;
-		
-		var nextStep = 0;
-		
-		«FOR i: 0..roverSystem.roverPrograms.size - 1»
-			«var roverProgram = roverSystem.roverPrograms.get(i)»
-			«var block = roverProgram.block»
-			«var rover = roverProgram.rover»
-			var «rover.name»_commands =[
-					«IF block instanceof Repeat»
-						«FOR j: 0..block.count - 1»
+			var xPos = [[0],[0]];
+			var yPos = [[10],[80]];
+			
+			var rover0angle = 0;
+			var rover1angle = 0;
+			
+			var nextStep = 0;
+			
+			«FOR i : 0..roverSystem.roverPrograms.size - 1»
+				«var roverProgram = roverSystem.roverPrograms.get(i)»
+				«var block = roverProgram.block»
+				«var rover = roverProgram.rover»
+				var «rover.name»_commands =[
+						«IF block instanceof Repeat»
+							«FOR j: 0..block.count - 1»
+								«FOR k: 0..block.commands.size - 1»
+									«var command = block.commands.get(k)»
+									«IF k > 0»
+										«setPrevCommand(block.commands.get(k - 1))»
+										()=>{«setCommandName(rover, command)»«setCommandData(rover, command)»«unHighlightPreviousCommand(prevCommand)»;highlight("command_«command.commandId»");},
+									«ELSEIF k == 0 && j > 0»
+										«setPrevCommand(block.commands.get(block.commands.size - 1))»
+										()=>{«setCommandName(rover, command)»«setCommandData(rover, command)»«unHighlightPreviousCommand(prevCommand)»;highlight("command_«command.commandId»");},
+									«ELSE»
+										()=>{«setCommandName(rover, command)»«setCommandData(rover, command)»highlight("command_«command.commandId»");},
+									«ENDIF»
+								«ENDFOR»
+							«ENDFOR»
+						«ELSE»
 							«FOR k: 0..block.commands.size - 1»
 								«var command = block.commands.get(k)»
-								«IF k > 0»
-									«setPrevCommand(block.commands.get(k - 1))»
-									()=>{«setCommandName(rover, command)»("light_0","green");«unHighlightPreviousCommand(prevCommand)»;highlight("command_«command.commandId»");},
-								«ELSEIF k == 0 && j > 0»
-									«setPrevCommand(block.commands.get(block.commands.size - 1))»
-									()=>{«setCommandName(rover, command)»("light_0","green");«unHighlightPreviousCommand(prevCommand)»;highlight("command_«command.commandId»");},
-								«ELSE»
-									()=>{«setCommandName(rover, command)»("light_0","green");highlight("command_«command.commandId»");},
-								«ENDIF»
-							«ENDFOR»
-						«ENDFOR»
-					«ELSE»
-						«FOR k: 0..block.commands.size - 1»
-							«var command = block.commands.get(k)»
-							«IF command instanceof Repeat»
-								«FOR j: 0..command.count - 1»
-									«FOR t: 0..command.commands.size - 1»
-										«var com = command.commands.get(t)»
-										«IF t > 0»
-											«setPrevCommand(command.commands.get(t - 1))»
-											()=>{«setCommandName(rover, com)»("light_0","green");«unHighlightPreviousCommand(prevCommand)»;highlight("command_«com.commandId»");},
-										«ELSEIF t == 0 && k > 0 && j == 0»
-											«setPrevCommand(block.commands.get(k - 1))»
-											()=>{«setCommandName(rover, com)»("light_0","green");«unHighlightPreviousCommand(prevCommand)»;highlight("command_«com.commandId»");},
-										«ELSEIF t == 0 && j > 0»
-											«setPrevCommand(command.commands.get(t))»
-											()=>{«setCommandName(rover, com)»("light_0","green");«unHighlightPreviousCommand(prevCommand)»;highlight("command_«com.commandId»");},
-										«ELSE»
-											()=>{«setCommandName(rover, com)»("light_0","green");highlight("command_«com.commandId»");},
-										«ENDIF»
+								«IF command instanceof Repeat»
+									«FOR j: 0..command.count - 1»
+										«FOR t: 0..command.commands.size - 1»
+											«var com = command.commands.get(t)»
+											«IF t > 0»
+												«setPrevCommand(command.commands.get(t - 1))»
+												()=>{«setCommandName(rover, com)»«setCommandData2(rover, command)»«unHighlightPreviousCommand(prevCommand)»;highlight("command_«com.commandId»");},
+											«ELSEIF t == 0 && k > 0 && j == 0»
+												«setPrevCommand(block.commands.get(k - 1))»
+												()=>{«setCommandName(rover, com)»«setCommandData2(rover, command)»«unHighlightPreviousCommand(prevCommand)»;highlight("command_«com.commandId»");},
+											«ELSEIF t == 0 && j > 0»
+												«setPrevCommand(command.commands.get(t))»
+												()=>{«setCommandName(rover, com)»«setCommandData2(rover, command)»«unHighlightPreviousCommand(prevCommand)»;highlight("command_«com.commandId»");},
+											«ELSE»
+												()=>{«setCommandName(rover, com)»«setCommandData2(rover, command)»highlight("command_«com.commandId»");},
+											«ENDIF»
+										«ENDFOR»
 									«ENDFOR»
-								«ENDFOR»
-							«ELSE»
-								«IF k > 0»
-									()=>{«setCommandName(rover, command)»("light_0","green");«unHighlightPreviousCommand(prevCommand)»;highlight("command_«command.commandId»");},
 								«ELSE»
-									()=>{«setCommandName(rover, command)»("light_0","green");highlight("command_«command.commandId»");},
+									«IF k > 0»
+										()=>{«setCommandName(rover, command)»«setCommandData2(rover, command)»«unHighlightPreviousCommand(prevCommand)»;highlight("command_«command.commandId»");},
+									«ELSE»
+										()=>{«setCommandName(rover, command)»«setCommandData2(rover, command)»highlight("command_«command.commandId»");},
+									«ENDIF»
 								«ENDIF»
-							«ENDIF»
-							
-						«ENDFOR»
-					«ENDIF»
+								
+							«ENDFOR»
+						«ENDIF»
 				];
-		«ENDFOR»
-		
-		function drawOnLoad(){ 
-		«FOR i: 0..roverSystem.rovers.size - 1»
-			drawRover(«i»);
-		«ENDFOR»
-		}
-		
-		«FOR i: 0..roverSystem.roverPrograms.size - 1»
-			«var program = roverSystem.roverPrograms.get(i)»
-			function «program.name»() {
-				«var block = program.block»
-				«IF block instanceof Repeat»
-					for (var i0 = «block.count»; i0 > 0; i0--) {
+			«ENDFOR»
+			
+			function drawOnLoad(){ 
+			«FOR i : 0..roverSystem.rovers.size - 1»
+				drawRover(«i»);
+			«ENDFOR»
+			}
+			
+			«FOR i : 0..roverSystem.roverPrograms.size - 1»
+				«var program = roverSystem.roverPrograms.get(i)»
+				function «program.name»() {
+					«var block = program.block»
+					«IF block instanceof Repeat»
+						for (var i0 = «block.count»; i0 > 0; i0--) {
+							«FOR j: 0..block.commands.size - 1»
+								«setCommandName(program.rover,block.commands.get(j))»«setCommandData(program.rover,block.commands.get(j))»
+							«ENDFOR»
+							}
+					«ELSE»
 						«FOR j: 0..block.commands.size - 1»
 							«setCommandName(program.rover,block.commands.get(j))»«setCommandData(program.rover,block.commands.get(j))»
 						«ENDFOR»
-						}
-				«ELSE»
-					«FOR j: 0..block.commands.size - 1»
-						«setCommandName(program.rover,block.commands.get(j))»«setCommandData(program.rover,block.commands.get(j))»
-					«ENDFOR»
-				«ENDIF»
-				
+					«ENDIF»
+				}
+			«ENDFOR»
+			
+			function runSimulation(){
+				«FOR i : 0..roverSystem.roverPrograms.size - 1»
+					«roverSystem.roverPrograms.get(i).name»();
+				«ENDFOR»
+				nextStep = Math.max(«stringConvert(roverSystem)»);
 			}
 			
-		«ENDFOR»
-		
-		
+			function step(){
+				
+				«FOR i : 0..roverSystem.roverPrograms.size - 1»
+					if(nextStep <= «roverSystem.roverPrograms.get(i).rover.name»_commands.length - 1){
+					«roverSystem.roverPrograms.get(i).rover.name»_commands[nextStep].call();
+					}
+					
+				«ENDFOR»
+				nextStep++;
+			}
+			
 		'''
 	}
-	
+
+	private def String stringConvert(RoverSystem roverSystem) {
+		var sb = "";
+		for (int i : 0 .. roverSystem.roverPrograms.size - 1) {
+			sb = sb + roverSystem.roverPrograms.get(i).rover.name.toString + "_commands.length";
+			if (i != roverSystem.roverPrograms.size - 1) {
+				sb = sb + ",";
+			}
+		}
+		return sb;
+	}
+
 //	()=>{setLight("light_0","green");highlight("command_0");},
 //								()=>{moveRover(0,rover0angle,100.0);unHighlight("command_0");highlight("command_1");},
 //								()=>{setLight("light_0","red");unHighlight("command_1");highlight("command_2");},
@@ -326,7 +352,6 @@ class SimulatorGenerator implements IGenerator {
 //							()=>{moveRover(0,rover0angle,100.0);unHighlight("command_0");highlight("command_1");},
 //							()=>{setLight("light_0","red");unHighlight("command_1");highlight("command_2");},
 //							()=>{rover0angle=rotate(rover0angle,1.5707964);unHighlight("command_2");highlight("command_3");}
-
 	override doGenerate(Resource input, IFileSystemAccess fsa) {
 		val system = input.contents.findFirst[o|o instanceof RoverSystem] as RoverSystem
 		fsa.generateFile('''input.URI.trimFileExtension.lastSegment.html''', system.generateHtml)
@@ -336,13 +361,13 @@ class SimulatorGenerator implements IGenerator {
 	private def getRoverImage() {
 		return "img/rover1.gif"
 	}
-	
+
 	private def String unHighlightPreviousCommand(Command c1) {
 		if (c1 !== null) {
-			return "unHighlight(\"command_" +  c1.commandId.toString() + "\")";
-		}	
+			return "unHighlight(\"command_" + c1.commandId.toString() + "\")";
+		}
 	}
-	
+
 	private def String setCommandName(Rover rover, Command c) {
 		if (c instanceof SetLightColor) {
 			return "setLight"
@@ -352,29 +377,68 @@ class SimulatorGenerator implements IGenerator {
 			return new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString();
 		}
 	}
-	
+
 	private def Integer getLightName(Rover rover) {
-		for (int i: 0..rover.components.size) {
+		for (int i : 0 .. rover.components.size) {
 			var component = rover.components.get(i);
 			if (component instanceof Light) {
 				return component.lightId
 			}
 		}
 	}
-	
+
 	private def String setCommandData(Rover rover, Command c) {
-		
+
 		if (c instanceof SetLightColor) {
 			return "(" + "\"light_" + getLightName(rover) + "\",\"" + c.color + "\");"
 		} else if (c instanceof Move) {
-			return "(" + rover.roverId + "," + new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString() + "," + c.distance.value * c.speed.value  + ");"
+			return "(" + rover.roverId + "," +
+				new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString() + "," +
+				c.distance.value * c.speed.value + ");"
 		} else if (c instanceof Rotate) {
 			var str = String.format("%.7f", Math.ceil(c.angle.value * (Math.PI / 180) * 10000000) / 10000000);
-			return "=rotate(" + new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString() + "," + str + ");";
+			return "=rotate(" +
+				new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString() + "," +
+				str + ");";
+		} else if (c instanceof Repeat) {
+			var rc = "";
+			for (int i : 0 .. c.commands.size - 1) {
+				if (i == 0) {
+					rc = rc + setCommandName(rover, c.commands.get(i)) + setCommandData(rover, c.commands.get(i));
+				} else if (i > 0) {
+					rc = rc + System.lineSeparator() + setCommandName(rover, c.commands.get(i)) +
+						setCommandData(rover, c.commands.get(i));
+				}
+			}
+			var str = "for (var i0 = " + c.count + "; i0 > 0; i0--) {" + System.lineSeparator() + rc +
+				System.lineSeparator() + "}";
+			return str;
 		}
-//		 else if (c instanceof Repeat) {
-//			setCommandData(rover,c)
-//		}
+	}
+	
+	private def String setCommandData2(Rover rover, Command c) {
+
+		if (c instanceof SetLightColor) {
+			return "(" + "\"light_" + getLightName(rover) + "\",\"" + c.color + "\");"
+		} else if (c instanceof Move) {
+			return "(" + rover.roverId + "," +
+				new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString() + "," +
+				c.distance.value * c.speed.value + ");"
+		} else if (c instanceof Rotate) {
+			var str = String.format("%.7f", Math.ceil(c.angle.value * (Math.PI / 180) * 10000000) / 10000000);
+			return "=rotate(" +
+				new StringBuilder().append("rover").append(rover.roverId.toString()).append("angle").toString() + "," +
+				str + ");";
+		} else if (c instanceof Repeat) {
+			var rc = "";
+			for (int i : 0 .. c.commands.size - 1) {
+				if (i == 0) {
+					rc = rc + setCommandData(rover, c.commands.get(i));
+				} 
+			}
+
+			return rc;
+		}
 	}
 
 }
